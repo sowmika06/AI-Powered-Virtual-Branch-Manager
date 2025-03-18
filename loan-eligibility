@@ -1,0 +1,174 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+
+interface LoanEligibilityProps {
+  userResponses: Record<string, string>
+  documents: Record<string, string>
+  onEligibilityCheck: () => void
+}
+
+export function LoanEligibility({ userResponses, documents, onEligibilityCheck }: LoanEligibilityProps) {
+  const [isChecking, setIsChecking] = useState(false)
+  const [checkSteps, setCheckSteps] = useState({
+    identity: false,
+    income: false,
+    creditScore: false,
+    eligibility: false,
+  })
+
+  // Start eligibility check
+  const startEligibilityCheck = () => {
+    setIsChecking(true)
+
+    // Simulate checking steps with delays
+    setTimeout(() => {
+      setCheckSteps((prev) => ({ ...prev, identity: true }))
+
+      setTimeout(() => {
+        setCheckSteps((prev) => ({ ...prev, income: true }))
+
+        setTimeout(() => {
+          setCheckSteps((prev) => ({ ...prev, creditScore: true }))
+
+          setTimeout(() => {
+            setCheckSteps((prev) => ({ ...prev, eligibility: true }))
+
+            setTimeout(() => {
+              onEligibilityCheck()
+            }, 1000)
+          }, 1500)
+        }, 1500)
+      }, 1500)
+    }, 1500)
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Loan Eligibility Check</h3>
+            <p className="text-muted-foreground">
+              We'll check your eligibility based on the information you've provided.
+            </p>
+
+            {!isChecking ? (
+              <Button onClick={startEligibilityCheck}>Check Eligibility</Button>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    {checkSteps.identity ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5 text-green-600 mr-2"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    ) : (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary mr-2"></div>
+                    )}
+                    <span>Verifying identity documents</span>
+                  </div>
+
+                  <div className="flex items-center">
+                    {checkSteps.income ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5 text-green-600 mr-2"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    ) : (
+                      <div
+                        className={`h-5 w-5 mr-2 ${checkSteps.identity ? "animate-spin rounded-full border-b-2 border-primary" : "opacity-0"}`}
+                      ></div>
+                    )}
+                    <span className={checkSteps.identity ? "" : "text-muted-foreground"}>
+                      Analyzing income and employment
+                    </span>
+                  </div>
+
+                  <div className="flex items-center">
+                    {checkSteps.creditScore ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5 text-green-600 mr-2"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    ) : (
+                      <div
+                        className={`h-5 w-5 mr-2 ${checkSteps.income ? "animate-spin rounded-full border-b-2 border-primary" : "opacity-0"}`}
+                      ></div>
+                    )}
+                    <span className={checkSteps.income ? "" : "text-muted-foreground"}>Checking credit score</span>
+                  </div>
+
+                  <div className="flex items-center">
+                    {checkSteps.eligibility ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5 text-green-600 mr-2"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    ) : (
+                      <div
+                        className={`h-5 w-5 mr-2 ${checkSteps.creditScore ? "animate-spin rounded-full border-b-2 border-primary" : "opacity-0"}`}
+                      ></div>
+                    )}
+                    <span className={checkSteps.creditScore ? "" : "text-muted-foreground"}>
+                      Determining final eligibility
+                    </span>
+                  </div>
+                </div>
+
+                {checkSteps.eligibility && (
+                  <p className="text-center text-green-600 font-medium">
+                    Eligibility check complete! Click continue to see your result.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
