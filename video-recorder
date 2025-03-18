@@ -1,0 +1,141 @@
+"use client"
+
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { useMobile } from "@/hooks/use-mobile"
+
+interface VideoRecorderProps {
+  onStartRecording: () => void
+  onStopRecording: (videoBlob: Blob) => void
+}
+
+export function VideoRecorder({ onStartRecording, onStopRecording }: VideoRecorderProps) {
+  const [isRecording, setIsRecording] = useState(false)
+  const [stream, setStream] = useState<MediaStream | null>(null)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const isMobile = useMobile()
+
+  // Request camera access
+  const requestCameraAccess = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      })
+
+      setStream(mediaStream)
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream
+      }
+    } catch (error) {
+      console.error("Error accessing camera:", error)
+    }
+  }
+
+  // Start recording
+  const startRecording = () => {
+    if (!stream) return
+
+    chunksRef.current = []
+    const mediaRecorder = new MediaRecorder(stream)
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunksRef.current.push(event.data)
+      }
+    }
+
+    mediaRecorder.onstop = () => {
+      const videoBlob = new Blob(chunksRef.current, { type: "video/webm" })
+      onStopRecording(videoBlob)
+      setRecordingTime(0)
+    }
+
+    mediaRecorderRef.current = mediaRecorder
+    mediaRecorder.start()
+    setIsRecording(true)
+    onStartRecording()
+
+    // Start timer
+    timerRef.current = setInterval(() => {
+      setRecordingTime((prev) => prev + 1)
+    }, 1000)
+  }
+
+  // Stop recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+
+      // Clear timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }
+
+  // Format recording time
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+  }
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop())
+      }
+
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }, [stream])
+
+  return (
+    <div className="space-y-4">
+      <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+        {!stream ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+            <p className="text-white text-center mb-4">
+              We need access to your camera and microphone to record your response
+            </p>
+            <Button onClick={requestCameraAccess}>Allow Camera Access</Button>
+          </div>
+        ) : (
+          <>
+            <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+
+            {isRecording && (
+              <div className="absolute top-4 right-4 bg-red-500 text-white px-2 py-1 rounded-md flex items-center">
+                <span className="animate-pulse mr-2 h-2 w-2 rounded-full bg-white"></span>
+                <span>{formatTime(recordingTime)}</span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {stream && (
+        <div className="flex justify-center">
+          {!isRecording ? (
+            <Button onClick={startRecording}>Start Recording</Button>
+          ) : (
+            <Button variant="destructive" onClick={stopRecording}>
+              Stop Recording
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
