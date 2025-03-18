@@ -1,0 +1,160 @@
+"use client"
+
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+
+interface FacialVerificationProps {
+  onVerificationComplete: () => void
+}
+
+export function FacialVerification({ onVerificationComplete }: FacialVerificationProps) {
+  const [stream, setStream] = useState<MediaStream | null>(null)
+  const [verificationStep, setVerificationStep] = useState<
+    "initial" | "accessing" | "instructions" | "capturing" | "processing" | "complete"
+  >("initial")
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  // Request camera access
+  const requestCameraAccess = async () => {
+    setVerificationStep("accessing")
+
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+      })
+
+      setStream(mediaStream)
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream
+      }
+
+      setVerificationStep("instructions")
+    } catch (error) {
+      console.error("Error accessing camera:", error)
+      setVerificationStep("initial")
+    }
+  }
+
+  // Capture face
+  const captureFace = () => {
+    setVerificationStep("capturing")
+
+    setTimeout(() => {
+      if (videoRef.current && canvasRef.current) {
+        const canvas = canvasRef.current
+        const video = videoRef.current
+
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+
+        const ctx = canvas.getContext("2d")
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        }
+      }
+
+      setVerificationStep("processing")
+
+      // Simulate verification process
+      setTimeout(() => {
+        setVerificationStep("complete")
+        onVerificationComplete()
+      }, 3000)
+    }, 2000)
+  }
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop())
+      }
+    }
+  }, [stream])
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="space-y-6">
+          {verificationStep === "initial" && (
+            <div className="text-center">
+              <h3 className="text-lg font-medium mb-4">Facial Verification</h3>
+              <p className="text-muted-foreground mb-6">
+                We need to verify your identity using facial recognition. This helps us ensure the security of your
+                application.
+              </p>
+              <Button onClick={requestCameraAccess}>Start Verification</Button>
+            </div>
+          )}
+
+          {verificationStep === "accessing" && (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p>Accessing your camera...</p>
+            </div>
+          )}
+
+          {(verificationStep === "instructions" || verificationStep === "capturing") && (
+            <div className="space-y-4">
+              <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+                <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+
+                {verificationStep === "capturing" && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <div className="text-white text-lg">Capturing...</div>
+                  </div>
+                )}
+
+                <div className="absolute inset-0 border-2 border-dashed border-white/50 m-12 rounded-full"></div>
+              </div>
+
+              {verificationStep === "instructions" && (
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-4">
+                    Position your face within the circle and ensure good lighting.
+                  </p>
+                  <Button onClick={captureFace}>Capture</Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {verificationStep === "processing" && (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p>Verifying your identity...</p>
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+          )}
+
+          {verificationStep === "complete" && (
+            <div className="text-center">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto bg-green-100 rounded-full">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-8 w-8 text-green-600"
+                >
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium mt-4">Verification Complete</h3>
+              <p className="text-muted-foreground mt-2">Your identity has been successfully verified.</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
